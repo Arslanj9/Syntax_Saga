@@ -75,7 +75,7 @@ function Base() {
 function Coin({ visible }: { visible: boolean }) {
   const { scene } = useGLTF("/coin23d.glb")
   if (!visible) return null
-  scene.position.set(COIN_POS.x,4, COIN_POS.z)
+  scene.position.set(COIN_POS.x,1, COIN_POS.z)
   scene.scale.set(0.93,1.8,-1)
   scene.rotation.set(0, Math.PI / 4, 0)
   return <primitive object={scene} />

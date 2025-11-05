@@ -38,7 +38,7 @@ function Base() {
   return <primitive object={scene} />
 }
 
-// 🎮 Level 1 Scene
+
 export default function Level1() {
   const [isExecuting, setIsExecuting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -115,13 +115,7 @@ export default function Level1() {
         break
     }
 
-    if (!isWithinBounds(newPosition.x, newPosition.z)) {
-      setErrorMessage("⚠️ Oops! The seahorse can't swim off the platform!")
-      setIsExecuting(false)
-      setTimeout(() => setErrorMessage(null), 3000)
-      return
-    }
-
+  
     if (newPosition.rotation > Math.PI || newPosition.rotation < -Math.PI)
       newPosition.rotation = Math.atan2(Math.sin(newPosition.rotation), Math.cos(newPosition.rotation))
 

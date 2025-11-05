@@ -23,10 +23,27 @@ export default function LevelsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Load user progress from localStorage
-    loadUserProgress()
-    setLoading(false)
-  }, [])
+    // Load user and progress
+    const loadUser = async () => {
+      try {
+        const { getCurrentUser } = await import("@/lib/auth")
+        const currentUser = await getCurrentUser()
+        if (currentUser) {
+          setUser({ uid: currentUser.id, email: currentUser.email })
+        } else {
+          // If not authenticated, redirect to login
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error("Error loading user:", error)
+        router.push("/login")
+      } finally {
+        loadUserProgress()
+        setLoading(false)
+      }
+    }
+    loadUser()
+  }, [router])
 
   const loadUserProgress = () => {
     try {
@@ -44,9 +61,15 @@ export default function LevelsPage() {
     }
   }
 
-  const handleLogout = () => {
-    // Demo mode - just redirect to home
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      const { logout } = await import("@/lib/auth")
+      await logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      router.push("/")
+    }
   }
 
   const updateProgress = (level: keyof LevelProgress) => {

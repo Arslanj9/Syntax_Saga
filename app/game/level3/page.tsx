@@ -6,13 +6,13 @@ import { useGLTF } from "@react-three/drei"
 import ProgrammingBar, { type CommandBlock } from "@/components/ProgrammingBar"
 import AnimatedSeahorse, { type SeahorsePosition } from "@/components/AnimatedSeahorse"
 import CodeDisplay from "@/components/CodeDisplay"
-
 import { generatePythonCode } from "@/lib/codeGenerator"
 
 // Editable seahorse starting pose (numericals)
 export const SEAHORSE_START_X = 4
 export const SEAHORSE_START_Z = -9
 export const SEAHORSE_START_ROTATION = 0
+export const COLLECTION_DISTANCE = 3.5
 
 // 🔒 Fixed Camera Controller
 function CameraController() {
@@ -54,6 +54,7 @@ function Key({ visible }: { visible: boolean }) {
   scene.rotation.set(0, Math.PI /4, 0) // Rotate 45 degrees to show front face
   return <primitive object={scene} />
 }
+
 function Door({ isOpen }: { isOpen: boolean }) {
   const { scene } = useGLTF("/Door model2.glb")
   const doorRef = useRef<any>()
@@ -98,18 +99,23 @@ export default function Level3() {
     rotation: SEAHORSE_START_ROTATION, // Start facing forward (positive X direction)
   })
 
-  const KEY_POSITION = { x: 7, z: -8.5 }
+  // Key position - must match the Key model's x and z coordinates in the scene
+  // Key is at (13, 9) - "2 forward, 1 left" from start position (4, -9)
+  const KEY_POSITION = { x: 13, z: 9 } // Matches Key model position.set(13, 0.2, 9)
   const DOOR_POSITION = { x: 7, z: -4 }
   const GOAL_POSITION = { x: 7, z: 0.5 }
-  const COLLECTION_DISTANCE = 2.5
 
   const checkKeyCollection = (x: number, z: number): boolean => {
     const distance = Math.sqrt(Math.pow(x - KEY_POSITION.x, 2) + Math.pow(z - KEY_POSITION.z, 2))
+    // Debug logging to help identify the issue
+    if (Math.abs(x - KEY_POSITION.x) < 5 && Math.abs(z - KEY_POSITION.z) < 5) {
+      console.log(`Seahorse: (${x.toFixed(2)}, ${z.toFixed(2)}), Key: (${KEY_POSITION.x}, ${KEY_POSITION.z}), Distance: ${distance.toFixed(2)}`)
+    }
     return distance < COLLECTION_DISTANCE
   }
 
   const checkDoorReached = (x: number, z: number): boolean => {
-    const distance = Math.sqrt(Math.pow(x - DOOR_POSITION.x, 0.5) + Math.pow(z - DOOR_POSITION.z, 2))
+    const distance = Math.sqrt(Math.pow(x - DOOR_POSITION.x, 2) + Math.pow(z - DOOR_POSITION.z, 2))
     return distance < COLLECTION_DISTANCE
   }
 
@@ -148,23 +154,27 @@ export default function Level3() {
     switch (cmd.type) {
       case "forward":
         newPos.x += Math.cos(newPos.rotation) * 4.5
-        newPos.z += Math.sin(newPos.rotation) * 4.5
+        newPos.z -= Math.sin(newPos.rotation) * 4.5
         break
       case "backward":
         newPos.x -= Math.cos(newPos.rotation) * 4.5
-        newPos.z -= Math.sin(newPos.rotation) * 4.5
+        newPos.z += Math.sin(newPos.rotation) * 4.5
         break
-        case "turnLeft":
-  newPos.x += Math.cos(newPos.rotation - Math.PI / 2) * 4.5
-  newPos.z += Math.sin(newPos.rotation - Math.PI / 2) * 4.5
-  break
+      case "turnLeft":
+        // 90° counterclockwise - only rotate, don't move (match Level 2 behavior)
+        newPos.rotation += Math.PI / 2
+        // Keep position exactly the same
+        newPos.x = pos.x
+        newPos.z = pos.z
+        break
 
         
       case "turnRight":
-        // Turn right (clockwise) and move in the new direction
+        // 90° clockwise - only rotate, don't move
         newPos.rotation -= Math.PI / 2
-        newPos.x += Math.cos(newPos.rotation) * 4.5
-        newPos.z += Math.sin(newPos.rotation) * 4.5
+        // Keep position exactly the same
+        newPos.x = pos.x
+        newPos.z = pos.z
         break
       case "turnAround":
         newPos.rotation += Math.PI
@@ -207,13 +217,17 @@ export default function Level3() {
       } else if (cmd.type !== "wait") { nextStage = 0; nextForwards = 0 }
     }
 
-    // 🔑 Check if key is collected
-    if (!keyCollected && checkKeyCollection(newPos.x, newPos.z)) {
+    // 🔑 Check if key is collected (check after every movement)
+    if (!keyCollected) {
+      const isNearKey = checkKeyCollection(newPos.x, newPos.z)
+      if (isNearKey) {
+        console.log(`✅ KEY COLLECTED! Seahorse at (${newPos.x.toFixed(2)}, ${newPos.z.toFixed(2)})`)
         setKeyCollected(true)
         setHasKey(true)
         setDoorOpen(true) // ✅ Open the door when key is collected
         setShowKeyToast(true)
         setTimeout(() => setShowKeyToast(false), 1500)
+      }
     }
 
     // 🏁 Check for level completion - need to reach goal position after collecting key

@@ -59,18 +59,19 @@ export default function Level4() {
   const [forwardSteps, setForwardSteps] = useState(0)
   const [generatedCode, setGeneratedCode] = useState<string>("")
   const [seahorsePosition, setSeahorsePosition] = useState<SeahorsePosition>({
-    x: 1,
-    z: -1.6,
+    x: 3.4,
+    z: -9,
     rotation: 0,
   })
 
   // 3 Coins: positions + collection
+  // Note: Group offset is [-2, 0, 0], so coin positions in game space match rendering positions
   const COIN_POSITIONS = [
     { x: 15, z: -1.6 },
     { x: 28, z: -1.6 },
     { x: 15, z: 8 },
   ] as const
-  const COLLECTION_DISTANCE = 2
+  const COLLECTION_DISTANCE = 3.5 // Increased distance to make collection easier
   const [coinCollected, setCoinCollected] = useState<[boolean, boolean, boolean]>([false, false, false])
 
   const executeProgram = (commands: CommandBlock[]) => {
@@ -138,32 +139,34 @@ export default function Level4() {
 
     setSeahorsePosition(newPosition)
 
-    // Check coin collection
-    setCoinCollected((prev) => {
-      const updated = [...prev] as [boolean, boolean, boolean]
-      let collectedAll = true
+    // Check coin collection with a slight delay to ensure seahorse has reached position
+    setTimeout(() => {
+      setCoinCollected((prev) => {
+        const updated = [...prev] as [boolean, boolean, boolean]
+        let collectedAll = true
 
-      for (let i = 0; i < COIN_POSITIONS.length; i++) {
-        if (!updated[i]) {
-          const dx = newPosition.x - COIN_POSITIONS[i].x
-          const dz = newPosition.z - COIN_POSITIONS[i].z
-          const distance = Math.sqrt(dx * dx + dz * dz)
-          if (distance < COLLECTION_DISTANCE) {
-            updated[i] = true
+        for (let i = 0; i < COIN_POSITIONS.length; i++) {
+          if (!updated[i]) {
+            const dx = newPosition.x - COIN_POSITIONS[i].x
+            const dz = newPosition.z - COIN_POSITIONS[i].z
+            const distance = Math.sqrt(dx * dx + dz * dz)
+            if (distance < COLLECTION_DISTANCE) {
+              updated[i] = true
+            }
           }
+          if (!updated[i]) collectedAll = false
         }
-        if (!updated[i]) collectedAll = false
-      }
 
-      if (collectedAll) {
-        setTimeout(() => {
-          setLevelCompleted(true)
-          setIsExecuting(false)
-        }, 500)
-      }
+        if (collectedAll) {
+          setTimeout(() => {
+            setLevelCompleted(true)
+            setIsExecuting(false)
+          }, 500)
+        }
 
-      return updated
-    })
+        return updated
+      })
+    }, 100) // Small delay to ensure position update is complete
 
     setTimeout(() => {
       executeNextCommand(commands, index + 1, newPosition, newStepCount)
