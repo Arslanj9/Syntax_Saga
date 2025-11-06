@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { register } from "@/lib/auth" 
+import { register as firebaseRegister } from "@/lib/auth" 
 
 export default function RegisterPage() {
   const [email, setEmail] = useState<string>("")
@@ -32,8 +32,8 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      const response = await register(email, password)
-      console.log("User registered", response.user)
+      await firebaseRegister(email, password)
+      console.log("User registered")
       router.push("/levels")
     } catch (err: any) {
       setError(err?.message ?? "Registration failed")
